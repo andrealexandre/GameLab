@@ -83,7 +83,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// this struct holds Windows event messages
 	MSG msg;
 
-	UINT_PTR timer = SetTimer(hWnd, 0, 25, NULL);
+	//UINT_PTR timer = SetTimer(hWnd, 0, 25, NULL);
 
 	// Enter the infinite message loop
 	while(TRUE)
@@ -101,7 +101,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		Render_Frame();
 	}
 
-	KillTimer(hWnd, timer);
+	//KillTimer(hWnd, timer);
 
 	// clean up DirectX and COM
 	CleanD3D();
@@ -118,7 +118,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	{
 		case WM_TIMER:
 			{				
-				index += 0.05f;
+				//index -= 0.05f;
 			} break;
 		// post a message to shutdown the program if ESC is pressed
 		case WM_KEYUP:
@@ -162,6 +162,7 @@ void InitD3D(HWND hWnd)
 						&d3ddev);
 
 	d3ddev->SetRenderState(D3DRS_LIGHTING, FALSE); // turn off the 3D lighting
+	d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // show both side of a polygon
 
 	Init_Graphics(); // call the function to initialize the triangle
 }
@@ -178,12 +179,13 @@ void Render_Frame(void)
 		d3ddev->SetFVF(CUSTOMFVF);
 
 		// SET UP THE PIPELINE
-								// world transform
+		index += 0.05f;
+								// world transform		
 		D3DXMATRIX matRotateY; // a matrix to store the rotation information		
 
 		// build a matrix to rotate the model based on the increasing float value
-		D3DXMatrixRotationY(&matRotateY, index);
-
+		D3DXMatrixRotationY(&matRotateY, -index);
+		
 		// tell Direct3D about our matrix
 		d3ddev->SetTransform(D3DTS_WORLD, &matRotateY);
 
@@ -197,12 +199,12 @@ void Render_Frame(void)
 		d3ddev->SetTransform(D3DTS_VIEW, &matView); // set the view transform to matView
 
 		D3DXMATRIX matProjection; // the projection transform matrix
-
+		
 		D3DXMatrixPerspectiveFovLH(&matProjection,
 									D3DXToRadian(45), // the horizontal field of view
 									(FLOAT)SCREEN_WIDTH/(FLOAT)SCREEN_HEIGHT, // aspect ratio
 									1.0f, // the near view-plane
-									100.f); // the far view-plane
+									100.0f); // the far view-plane
 
 		d3ddev->SetTransform(D3DTS_PROJECTION, &matProjection); //set projection
 
