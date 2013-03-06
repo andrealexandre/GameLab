@@ -203,21 +203,21 @@ void Render_Frame(void)
 		d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
 
 		D3DXMATRIX matTranslateA; // a matrix to store the translation for triangle A
-		D3DXMATRIX matTranslateB; // a matrix to store the translation for triangle B
-		D3DXMATRIX matRotateY; // a matrix to store the rotation for each triangle
+		D3DXMATRIX matTranslateB; // a matrix to store the translation for triangle B		
+		D3DXMATRIX matRotateY; // a matrix to store the rotation for each triangle		
 		static float index = 0.0f; index += 0.05f; // an ever-increasing float value
 		
 		// build MULTIPLE matrices to translate the model and one to rotate
 		D3DXMatrixTranslation(&matTranslateA, 0.0f, 0.0f, 2.0f);
-		D3DXMatrixTranslation(&matTranslateB, 0.0f, 0.0f, -2.0f);
+		D3DXMatrixTranslation(&matTranslateB, 0.0f, 0.0f, -2.0f);		
 		D3DXMatrixRotationY(&matRotateY, -index); // the front side
 		
 		// tell Direct3D about each world transform, and then draw another triangle
 		d3ddev->SetTransform(D3DTS_WORLD, &(matTranslateA * matRotateY));
-		d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
+		d3ddev->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
 
-		d3ddev->SetTransform(D3DTS_WORLD, &(matTranslateB * matRotateY));
-		d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
+		//d3ddev->SetTransform(D3DTS_WORLD, &(matTranslateB * matRotateY));
+		//d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
 	
 	d3ddev->EndScene(); //ends the 3D scene
 
@@ -238,13 +238,14 @@ void Init_Graphics(void)
 	// create the vertices using the CUSTOMVERTEX struct
 	CUSTOMVERTEX t_vert[] =
 	{
-		{ 2.5f, -3.0f, 0.0f, D3DCOLOR_XRGB(0, 0, 255), },
-		{ 0.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 0), },
-		{ -2.5f, -3.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), },
+		{ -3.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(0, 0, 255) },
+		{ 3.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 0) },
+		{ -3.0f, -3.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 0) },
+		{ 3.0f, -3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 255) }
 	};
 
 	// create a vertex buffer interface called v_buffer
-	d3ddev->CreateVertexBuffer( 3 * sizeof(CUSTOMVERTEX),
+	d3ddev->CreateVertexBuffer( 4 * sizeof(CUSTOMVERTEX),
 								0,
 								CUSTOMFVF,
 								D3DPOOL_MANAGED,
