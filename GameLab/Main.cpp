@@ -36,9 +36,6 @@ typedef struct Custom_Vertex
 	DWORD COLOR; // from the D3DFVF_DIFFUSE flag
 } CUSTOMVERTEX;
 
-
-static float index = 0.0f; // an ever-increasing float value
-
 // the entry point for any Windows program
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
@@ -152,6 +149,8 @@ void InitD3D(HWND hWnd)
 	d3dpp.BackBufferFormat = D3DFMT_X8R8G8B8; // set the back buffer format to 32-bit
 	d3dpp.BackBufferWidth = SCREEN_WIDTH; // set the width of the buffer
 	d3dpp.BackBufferHeight = SCREEN_HEIGHT; // set the height of the buffer
+	d3dpp.EnableAutoDepthStencil = TRUE; // automatically run the z-buffer for us
+	d3dpp.AutoDepthStencilFormat = D3DFMT_D16; // 16-bit pixel format for the z-buffer
 
 	// create a device class using this information and information from the d3dpp struct
 	d3d->CreateDevice(D3DADAPTER_DEFAULT,
@@ -161,17 +160,19 @@ void InitD3D(HWND hWnd)
 						&d3dpp,
 						&d3ddev);
 
-	d3ddev->SetRenderState(D3DRS_LIGHTING, FALSE); // turn off the 3D lighting
-	d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // show both side of a polygon
-
 	Init_Graphics(); // call the function to initialize the triangle
+
+	d3ddev->SetRenderState(D3DRS_LIGHTING, FALSE); // turn off the 3D lighting
+	d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // both sides of the triangles are shown
+	d3ddev->SetRenderState(D3DRS_ZENABLE, TRUE); // turn on the z-buffer
 }
 
 // this is a the function used to render a single frame
 void Render_Frame(void)
 {
 	// clear the window to a deep blue
-	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0, 0, 0), 1.0f, 0);
+	d3ddev->Clear(0, NULL, D3DCLEAR_TARGET, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
+	d3ddev->Clear(0, NULL, D3DCLEAR_ZBUFFER, D3DCOLOR_XRGB(0,0,0), 1.0f, 0);
 
 	d3ddev->BeginScene(); //begins the 3D scene
 
@@ -179,16 +180,6 @@ void Render_Frame(void)
 		d3ddev->SetFVF(CUSTOMFVF);
 
 		// SET UP THE PIPELINE
-		index += 0.05f;
-								// world transform		
-		D3DXMATRIX matRotateY; // a matrix to store the rotation information		
-
-		// build a matrix to rotate the model based on the increasing float value
-		D3DXMatrixRotationY(&matRotateY, -index);
-		
-		// tell Direct3D about our matrix
-		d3ddev->SetTransform(D3DTS_WORLD, &matRotateY);
-
 		D3DXMATRIX matView; // the view transform matrix
 
 		D3DXMatrixLookAtLH(&matView,
@@ -211,7 +202,21 @@ void Render_Frame(void)
 		//select the vertex buffer to the back buffer
 		d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
 
-		// copy the vertex buffer to the back buffer
+		D3DXMATRIX matTranslateA; // a matrix to store the translation for triangle A
+		D3DXMATRIX matTranslateB; // a matrix to store the translation for triangle B
+		D3DXMATRIX matRotateY; // a matrix to store the rotation for each triangle
+		static float index = 0.0f; index += 0.05f; // an ever-increasing float value
+		
+		// build MULTIPLE matrices to translate the model and one to rotate
+		D3DXMatrixTranslation(&matTranslateA, 0.0f, 0.0f, 2.0f);
+		D3DXMatrixTranslation(&matTranslateB, 0.0f, 0.0f, -2.0f);
+		D3DXMatrixRotationY(&matRotateY, -index); // the front side
+		
+		// tell Direct3D about each world transform, and then draw another triangle
+		d3ddev->SetTransform(D3DTS_WORLD, &(matTranslateA * matRotateY));
+		d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
+
+		d3ddev->SetTransform(D3DTS_WORLD, &(matTranslateB * matRotateY));
 		d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
 	
 	d3ddev->EndScene(); //ends the 3D scene
