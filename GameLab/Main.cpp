@@ -13,7 +13,8 @@
 #define SCREEN_HEIGHT 768
 
 // custom flexible vertex format
-#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_DIFFUSE)
+struct CUSTOMVERTEX { FLOAT X, Y, Z; D3DVECTOR NORMAL; };
+#define CUSTOMFVF (D3DFVF_XYZ | D3DFVF_NORMAL)
 
 // global declarations
 LPDIRECT3D9 d3d;			// the pointer to our Direct3D interface
@@ -26,16 +27,10 @@ void InitD3D(HWND hWnd); // sets up to our Direct3D interface
 void Render_Frame(void); // the pointer to the device class
 void CleanD3D(void);	 // closes Direct3D and releases memory
 void Init_Graphics(void); // 3D declarations
+void Init_Light(void); // sets up the light and the material
 
 //  the WindowProc function prototype
 LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-// define vertex struct
-typedef struct Custom_Vertex
-{
-	FLOAT X, Y, Z; // from the D3DFVF_XYZ flag
-	DWORD COLOR; // from the D3DFVF_DIFFUSE flag
-} CUSTOMVERTEX;
 
 // the entry point for any Windows program
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
@@ -161,11 +156,12 @@ void InitD3D(HWND hWnd)
 						&d3dpp,
 						&d3ddev);
 
-	Init_Graphics(); // call the function to initialize the triangle
+	Init_Graphics(); // call the function to initialize the models
+	Init_Light(); // call the function to initialize the light and material
 
-	d3ddev->SetRenderState(D3DRS_LIGHTING, FALSE); // turn off the 3D lighting
-	//d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // both sides of the triangles are shown
+	d3ddev->SetRenderState(D3DRS_LIGHTING, TRUE); // turn off the 3D lighting
 	d3ddev->SetRenderState(D3DRS_ZENABLE, TRUE); // turn on the z-buffer
+	d3ddev->SetRenderState(D3DRS_AMBIENT, D3DCOLOR_XRGB(50, 50, 50)); // ambient light
 }
 
 // this is a the function used to render a single frame
@@ -180,48 +176,37 @@ void Render_Frame(void)
 		// select which vextex format we are using
 		d3ddev->SetFVF(CUSTOMFVF);
 
-		// SET UP THE PIPELINE
+		// set the view transform
 		D3DXMATRIX matView; // the view transform matrix
 		D3DXMatrixLookAtLH(&matView,
 			&D3DXVECTOR3(0.0f,8.0f,25.0f), // the camera position
 			&D3DXVECTOR3(0.0f,0.0f,0.0f), // the look-at position
 			&D3DXVECTOR3(0.0f,1.0f,0.0f) ); // the up direction
-		d3ddev->SetTransform(D3DTS_VIEW, &matView); // set the view transform to matView
+		d3ddev->SetTransform(D3DTS_VIEW, &matView);
 
-		D3DXMATRIX matProjection; // the projection transform matrix
-		
+
+		// set the projection transform
+		D3DXMATRIX matProjection;		
 		D3DXMatrixPerspectiveFovLH(&matProjection,
 									D3DXToRadian(45), // the horizontal field of view
 									(FLOAT)SCREEN_WIDTH/(FLOAT)SCREEN_HEIGHT, // aspect ratio
 									1.0f, // the near view-plane
 									100.0f); // the far view-plane
-
-		d3ddev->SetTransform(D3DTS_PROJECTION, &matProjection); //set projection
-
-		//select the vertex and index buffers to use
+		d3ddev->SetTransform(D3DTS_PROJECTION, &matProjection);
+		
+		// select the vertex and index buffers to use
 		d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
 		d3ddev->SetIndices(i_buffer);
-		
-		D3DXMATRIX matRotateX;
-		D3DXMATRIX matRotateY; // a matrix to store the rotation
-		static float index = 0; index += 0.05f; // an ever-increasing float value
-		
-		// build a matrix to rotate the model
-		D3DXMatrixRotationY(&matRotateY, index); // the front side		
-		D3DXMatrixRotationX(&matRotateX, index/2);
-		
-		// tell Direct3D about each world transform, and then draw another triangle
-		d3ddev->SetTransform(D3DTS_WORLD, &(matRotateY * matRotateX));
-				
-		d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0,
-			5 + 5 + 5 + 8 + 8,
-			0, 
-			6 + 6 + 6 + 12 + 12);
 
-		//d3ddev->SetTransform(D3DTS_WORLD, &(matTranslateB * matRotateY));
-		//d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
+		// set the world transform
+		static float index = 0; index += 0.05f;		
+		D3DXMATRIX matRotateY;		
+		D3DXMatrixRotationY(&matRotateY, index);
+		d3ddev->SetTransform(D3DTS_WORLD, &(matRotateY));
+				
+		d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 24, 0, 12);
 	
-	d3ddev->EndScene(); //ends the 3D scene
+	d3ddev->EndScene();
 
 	d3ddev->Present(NULL, NULL, NULL, NULL); // displays the created frame
 }
@@ -230,6 +215,7 @@ void Render_Frame(void)
 void CleanD3D(void)
 {
 	v_buffer->Release(); // close and release the vertex buffer
+	i_buffer->Release(); // close and release the vertex buffer
 	d3ddev->Release(); // close and release the 3D device
 	d3d-> Release(); // close and release Direct3D
 }
@@ -240,52 +226,39 @@ void Init_Graphics(void)
 	// create the vertices using the CUSTOMVERTEX struct
 	CUSTOMVERTEX t_vert[] =
 	{
-		 // fuselage
-        { 3.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 0), }, // back - 0
-		{ -3.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), },
-		{ -3.0f, -3.0f, 0.0f, D3DCOLOR_XRGB(0, 0, 255), },
-		{ 3.0f, -3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 255), },
-		{ 0.0f, 0.0f, 12.0f, D3DCOLOR_XRGB(255, 255, 0), }, // nose - 4
+		{ -3.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },    // side 1
+        { 3.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
+        { -3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
+        { 3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
 
-		//weapons supports
-		{ 0.0f, 0.0f, 2.0f, D3DCOLOR_XRGB(0, 255, 0), }, // internal vertex - 5
-		// left weapon support		
-		{ -6.0f, 1.0f, 2.5f, D3DCOLOR_XRGB(0, 255, 255), }, // 6
-		{ -6.0f, -1.0f, 2.5f, D3DCOLOR_XRGB(255, 255, 0), },
-		{ -6.0f, 1.0f, 1.5f, D3DCOLOR_XRGB(0, 0, 255), },
-		{ -6.0f, -1.0f, 1.5f, D3DCOLOR_XRGB(255, 0, 0), },
+        { -3.0f, -3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },    // side 2
+        { -3.0f, 3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
+        { 3.0f, -3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
+        { 3.0f, 3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
 
-		// right weapon support		
-		{ 6.0f, 1.0f, 2.5f, D3DCOLOR_XRGB(0, 255, 255), }, // 10
-		{ 6.0f, -1.0f, 2.5f, D3DCOLOR_XRGB(255, 255, 0), },
-		{ 6.0f, 1.0f, 1.5f, D3DCOLOR_XRGB(0, 0, 255), },
-		{ 6.0f, -1.0f, 1.5f, D3DCOLOR_XRGB(255, 0, 0), },
+        { -3.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, },    // side 3
+        { -3.0f, 3.0f, 3.0f, 0.0f, 1.0f, 0.0f, },
+        { 3.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, },
+        { 3.0f, 3.0f, 3.0f, 0.0f, 1.0f, 0.0f, },
 
-		// left weapon
-		{ -6.0f, 1.5f, 6.0f, D3DCOLOR_XRGB(255, 0, 0), }, // 14
-		{ -6.0f, -1.5f, 6.0f, D3DCOLOR_XRGB(255, 255, 0), },
-		{ -8.0f, 1.5f, 6.0f, D3DCOLOR_XRGB(0, 255, 255), },
-		{ -8.0f, -1.5f, 6.0f, D3DCOLOR_XRGB(255, 0, 255), },
+        { -3.0f, -3.0f, -3.0f, 0.0f, -1.0f, 0.0f, },    // side 4
+        { 3.0f, -3.0f, -3.0f, 0.0f, -1.0f, 0.0f, },
+        { -3.0f, -3.0f, 3.0f, 0.0f, -1.0f, 0.0f, },
+        { 3.0f, -3.0f, 3.0f, 0.0f, -1.0f, 0.0f, },
 
-		{ -6.0f, 1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), }, // 18
-		{ -6.0f, -1.5f, 0.0f, D3DCOLOR_XRGB(0, 255, 0), },
-		{ -8.0f, 1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 255), },
-		{ -8.0f, -1.5f, 0.0f, D3DCOLOR_XRGB(0, 0, 255), },
+        { 3.0f, -3.0f, -3.0f, 1.0f, 0.0f, 0.0f, },    // side 5
+        { 3.0f, 3.0f, -3.0f, 1.0f, 0.0f, 0.0f, },
+        { 3.0f, -3.0f, 3.0f, 1.0f, 0.0f, 0.0f, },
+        { 3.0f, 3.0f, 3.0f, 1.0f, 0.0f, 0.0f, },
 
-		// right weapon
-		{ 6.0f, 1.5f, 6.0f, D3DCOLOR_XRGB(255, 0, 0), }, // 22
-		{ 6.0f, -1.5f, 6.0f, D3DCOLOR_XRGB(255, 255, 0), },
-		{ 8.0f, 1.5f, 6.0f, D3DCOLOR_XRGB(0, 255, 0), },
-		{ 8.0f, -1.5f, 6.0f, D3DCOLOR_XRGB(0, 255, 255), },
-
-		{ 6.0f, 1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), }, // 26
-		{ 6.0f, -1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), },
-		{ 8.0f, 1.5f, 0.0f, D3DCOLOR_XRGB(0, 0, 255), },
-		{ 8.0f, -1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 255), }
+        { -3.0f, -3.0f, -3.0f, -1.0f, 0.0f, 0.0f, },    // side 6
+        { -3.0f, -3.0f, 3.0f, -1.0f, 0.0f, 0.0f, },
+        { -3.0f, 3.0f, -3.0f, -1.0f, 0.0f, 0.0f, },
+        { -3.0f, 3.0f, 3.0f, -1.0f, 0.0f, 0.0f, }
 	};
 
 	// create a vertex buffer interface called v_buffer
-	d3ddev->CreateVertexBuffer( sizeof(t_vert),
+	d3ddev->CreateVertexBuffer( 24 * sizeof(CUSTOMVERTEX),
 								0,
 								CUSTOMFVF,
 								D3DPOOL_MANAGED,
@@ -302,61 +275,22 @@ void Init_Graphics(void)
 	// create the indices using an int array
 	short indices[] =
 	{
-		// fuselage
-		0, 3, 2, //base
-		0, 2, 1,
-		0, 1, 4, // top side
-		1, 2, 4, // left side
-		4, 2, 3, // bottom side
-		4, 3, 0, // right side
-
-		// left weapon support
-		6, 8, 7,
-		8, 9, 7,
-		5, 6, 7,
-		5, 8, 6,
-		5, 9, 8,
-		5, 7, 9,
-
-		// right weapon support
-		10, 13, 12,
-		10, 11, 13,
-		5, 10, 12,
-		5, 11, 10,
-		5, 13, 11,
-		5, 12, 13,
-
-		// left weapon
-		14, 17, 15,	// front
-		14, 16, 17,
-		19, 20, 18, // back
-		19, 21, 20,
-		16, 20, 17, //sides
-		17, 20, 21,
-		14, 18, 20,
-		14, 20, 16,
-		14, 15, 19,
-		14, 19, 18,
-		15, 17, 21,
-		15, 21, 19,
-
-		// right weapon
-		22, 23, 24, // front
-		24, 23, 25,
-		28, 27, 26, // back
-		28, 29, 27,
-		26, 22, 24, // sides
-		28, 26, 24,
-		22, 26, 23,
-		23, 26, 27,
-		25, 23, 27,
-		25, 27, 29,
-		25, 29, 28,
-		25, 28, 24
+		0, 1, 2,    // side 1
+        2, 1, 3,
+        4, 5, 6,    // side 2
+        6, 5, 7,
+        8, 9, 10,    // side 3
+        10, 9, 11,
+        12, 13, 14,    // side 4
+        14, 13, 15,
+        16, 17, 18,    // side 5
+        18, 17, 19,
+        20, 21, 22,    // side 6
+        22, 21, 23
 	};
 	
 	// create an index buffer interface called i_buffer
-	d3ddev->CreateIndexBuffer( sizeof(indices), // 3 per triangle, 12;
+	d3ddev->CreateIndexBuffer( 36 * sizeof(short), // 3 per triangle, 12;
 								0,
 								D3DFMT_INDEX16,
 								D3DPOOL_MANAGED,
@@ -367,4 +301,25 @@ void Init_Graphics(void)
 	i_buffer->Lock(0, 0, (void**)&pVoid, 0);
 	memcpy(pVoid, indices, sizeof(indices));
 	i_buffer->Unlock();
+}
+
+// this is the function that sets up the lights and materials
+void Init_Light(void)
+{
+	D3DLIGHT9 light; // create a light struct
+	D3DMATERIAL9 material;	// create the material struct
+
+	ZeroMemory(&light, sizeof(light)); // clear out the light struct for use
+	light.Type = D3DLIGHT_DIRECTIONAL; // make the light type 'directional light'
+	light.Diffuse = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f); // set the light's color
+	light.Direction = D3DXVECTOR3(-1.0f, -0.3f, -1.0f);
+
+	d3ddev->SetLight(0, &light); // send the light struct properties to light #0
+	d3ddev->LightEnable(0, TRUE); // turn on light #0
+
+	ZeroMemory(&material, sizeof(material)); // clear out the struct for use
+	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f); // set diffuse color to white	
+	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f); // set ambient color to white	
+
+	d3ddev->SetMaterial(&material); // set the globally-used material to &material
 }
