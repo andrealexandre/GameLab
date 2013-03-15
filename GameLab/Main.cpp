@@ -164,7 +164,7 @@ void InitD3D(HWND hWnd)
 	Init_Graphics(); // call the function to initialize the triangle
 
 	d3ddev->SetRenderState(D3DRS_LIGHTING, FALSE); // turn off the 3D lighting
-	d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // both sides of the triangles are shown
+	//d3ddev->SetRenderState(D3DRS_CULLMODE, D3DCULL_NONE); // both sides of the triangles are shown
 	d3ddev->SetRenderState(D3DRS_ZENABLE, TRUE); // turn on the z-buffer
 }
 
@@ -182,12 +182,10 @@ void Render_Frame(void)
 
 		// SET UP THE PIPELINE
 		D3DXMATRIX matView; // the view transform matrix
-
 		D3DXMatrixLookAtLH(&matView,
-							&D3DXVECTOR3(0.0f,0.0f,10.0f), // the camera position
-							&D3DXVECTOR3(0.0f,0.0f,0.0f), // the look-at position
-							&D3DXVECTOR3(0.0f,1.0f,0.0f) ); // the up direction
-
+			&D3DXVECTOR3(0.0f,8.0f,25.0f), // the camera position
+			&D3DXVECTOR3(0.0f,0.0f,0.0f), // the look-at position
+			&D3DXVECTOR3(0.0f,1.0f,0.0f) ); // the up direction
 		d3ddev->SetTransform(D3DTS_VIEW, &matView); // set the view transform to matView
 
 		D3DXMATRIX matProjection; // the projection transform matrix
@@ -204,21 +202,21 @@ void Render_Frame(void)
 		d3ddev->SetStreamSource(0, v_buffer, 0, sizeof(CUSTOMVERTEX));
 		d3ddev->SetIndices(i_buffer);
 		
-		D3DXMATRIX matTranslate; // a matrix to store a translation
-		D3DXMATRIX matRotateX; // a matrix to store a rotation on x axis
+		D3DXMATRIX matRotateX;
 		D3DXMATRIX matRotateY; // a matrix to store the rotation
-		static float index = 0.0f; index += 0.05f; // an ever-increasing float value
+		static float index = 0; index += 0.05f; // an ever-increasing float value
 		
 		// build a matrix to rotate the model
-		D3DXMatrixTranslation(&matTranslate, 0.0f, 0.0f, -5.0f);
+		D3DXMatrixRotationY(&matRotateY, index); // the front side		
 		D3DXMatrixRotationX(&matRotateX, index/2);
-		D3DXMatrixRotationY(&matRotateY, index); // the front side
 		
 		// tell Direct3D about each world transform, and then draw another triangle
-		d3ddev->SetTransform(D3DTS_WORLD, &(matRotateY * matRotateX * matTranslate));
-
-		//d3ddev->DrawPrimitive(D3DPT_TRIANGLESTRIP, 0, 2);
-		d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 8, 0, 12);
+		d3ddev->SetTransform(D3DTS_WORLD, &(matRotateY * matRotateX));
+				
+		d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0,
+			5 + 5 + 5 + 8 + 8,
+			0, 
+			6 + 6 + 6 + 12 + 12);
 
 		//d3ddev->SetTransform(D3DTS_WORLD, &(matTranslateB * matRotateY));
 		//d3ddev->DrawPrimitive(D3DPT_TRIANGLELIST, 0, 1);
@@ -242,18 +240,52 @@ void Init_Graphics(void)
 	// create the vertices using the CUSTOMVERTEX struct
 	CUSTOMVERTEX t_vert[] =
 	{
-		{ -3.0f, 3.0f, -3.0f, D3DCOLOR_XRGB(0, 0, 255) },	// vertex 0
-		{ 3.0f, 3.0f, -3.0f, D3DCOLOR_XRGB(0, 255, 0) },	// vertex 1
-		{ -3.0f, -3.0f, -3.0f, D3DCOLOR_XRGB(255, 0, 0) },	// 2
-		{ 3.0f, -3.0f, -3.0f, D3DCOLOR_XRGB(0, 255, 255) },	// 3
-		{ -3.0f, 3.0f, 3.0f, D3DCOLOR_XRGB(0, 0, 255) },	// ...
-		{ 3.0f, 3.0f, 3.0f, D3DCOLOR_XRGB(255, 0, 0) },
-		{ -3.0f, -3.0f, 3.0f, D3DCOLOR_XRGB(0, 255, 0) },
-		{ 3.0f, -3.0f, 3.0f, D3DCOLOR_XRGB(0, 255, 255) }
+		 // fuselage
+        { 3.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 0), }, // back - 0
+		{ -3.0f, 3.0f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), },
+		{ -3.0f, -3.0f, 0.0f, D3DCOLOR_XRGB(0, 0, 255), },
+		{ 3.0f, -3.0f, 0.0f, D3DCOLOR_XRGB(0, 255, 255), },
+		{ 0.0f, 0.0f, 12.0f, D3DCOLOR_XRGB(255, 255, 0), }, // nose - 4
+
+		//weapons supports
+		{ 0.0f, 0.0f, 2.0f, D3DCOLOR_XRGB(0, 255, 0), }, // internal vertex - 5
+		// left weapon support		
+		{ -6.0f, 1.0f, 2.5f, D3DCOLOR_XRGB(0, 255, 255), }, // 6
+		{ -6.0f, -1.0f, 2.5f, D3DCOLOR_XRGB(255, 255, 0), },
+		{ -6.0f, 1.0f, 1.5f, D3DCOLOR_XRGB(0, 0, 255), },
+		{ -6.0f, -1.0f, 1.5f, D3DCOLOR_XRGB(255, 0, 0), },
+
+		// right weapon support		
+		{ 6.0f, 1.0f, 2.5f, D3DCOLOR_XRGB(0, 255, 255), }, // 10
+		{ 6.0f, -1.0f, 2.5f, D3DCOLOR_XRGB(255, 255, 0), },
+		{ 6.0f, 1.0f, 1.5f, D3DCOLOR_XRGB(0, 0, 255), },
+		{ 6.0f, -1.0f, 1.5f, D3DCOLOR_XRGB(255, 0, 0), },
+
+		// left weapon
+		{ -6.0f, 1.5f, 6.0f, D3DCOLOR_XRGB(255, 0, 0), }, // 14
+		{ -6.0f, -1.5f, 6.0f, D3DCOLOR_XRGB(255, 255, 0), },
+		{ -8.0f, 1.5f, 6.0f, D3DCOLOR_XRGB(0, 255, 255), },
+		{ -8.0f, -1.5f, 6.0f, D3DCOLOR_XRGB(255, 0, 255), },
+
+		{ -6.0f, 1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), }, // 18
+		{ -6.0f, -1.5f, 0.0f, D3DCOLOR_XRGB(0, 255, 0), },
+		{ -8.0f, 1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 255), },
+		{ -8.0f, -1.5f, 0.0f, D3DCOLOR_XRGB(0, 0, 255), },
+
+		// right weapon
+		{ 6.0f, 1.5f, 6.0f, D3DCOLOR_XRGB(255, 0, 0), }, // 22
+		{ 6.0f, -1.5f, 6.0f, D3DCOLOR_XRGB(255, 255, 0), },
+		{ 8.0f, 1.5f, 6.0f, D3DCOLOR_XRGB(0, 255, 0), },
+		{ 8.0f, -1.5f, 6.0f, D3DCOLOR_XRGB(0, 255, 255), },
+
+		{ 6.0f, 1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), }, // 26
+		{ 6.0f, -1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 0), },
+		{ 8.0f, 1.5f, 0.0f, D3DCOLOR_XRGB(0, 0, 255), },
+		{ 8.0f, -1.5f, 0.0f, D3DCOLOR_XRGB(255, 0, 255), }
 	};
 
 	// create a vertex buffer interface called v_buffer
-	d3ddev->CreateVertexBuffer( 4 * sizeof(CUSTOMVERTEX),
+	d3ddev->CreateVertexBuffer( sizeof(t_vert),
 								0,
 								CUSTOMFVF,
 								D3DPOOL_MANAGED,
@@ -270,22 +302,61 @@ void Init_Graphics(void)
 	// create the indices using an int array
 	short indices[] =
 	{
-		0, 1, 2,	// side 1
-		2, 1, 3,		
-		4, 0, 6,	// side 2		
-		6, 0, 2,
-		7, 5, 6,	// side 3
-		6, 5, 4,
-		3, 1, 7,	// side 4
-		7, 1, 5,
-		4, 5, 0,	// side 5
-		0, 5, 1,
-		3, 7, 2,	// side 6
-		2, 7, 6
+		// fuselage
+		0, 3, 2, //base
+		0, 2, 1,
+		0, 1, 4, // top side
+		1, 2, 4, // left side
+		4, 2, 3, // bottom side
+		4, 3, 0, // right side
+
+		// left weapon support
+		6, 8, 7,
+		8, 9, 7,
+		5, 6, 7,
+		5, 8, 6,
+		5, 9, 8,
+		5, 7, 9,
+
+		// right weapon support
+		10, 13, 12,
+		10, 11, 13,
+		5, 10, 12,
+		5, 11, 10,
+		5, 13, 11,
+		5, 12, 13,
+
+		// left weapon
+		14, 17, 15,	// front
+		14, 16, 17,
+		19, 20, 18, // back
+		19, 21, 20,
+		16, 20, 17, //sides
+		17, 20, 21,
+		14, 18, 20,
+		14, 20, 16,
+		14, 15, 19,
+		14, 19, 18,
+		15, 17, 21,
+		15, 21, 19,
+
+		// right weapon
+		22, 23, 24, // front
+		24, 23, 25,
+		28, 27, 26, // back
+		28, 29, 27,
+		26, 22, 24, // sides
+		28, 26, 24,
+		22, 26, 23,
+		23, 26, 27,
+		25, 23, 27,
+		25, 27, 29,
+		25, 29, 28,
+		25, 28, 24
 	};
 	
 	// create an index buffer interface called i_buffer
-	d3ddev->CreateIndexBuffer( 36 * sizeof(short), // 3 per triangle, 12;
+	d3ddev->CreateIndexBuffer( sizeof(indices), // 3 per triangle, 12;
 								0,
 								D3DFMT_INDEX16,
 								D3DPOOL_MANAGED,
