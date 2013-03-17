@@ -317,15 +317,15 @@ void Init_Light(void)
 
 	ZeroMemory(&light, sizeof(light)); // clear out the light struct for use
 	light.Type = D3DLIGHT_DIRECTIONAL; // make the light type 'directional light'
-	light.Diffuse = D3DXCOLOR(1.0f, 0.4f, 0.4f, 1.0f); // set the light's color
+	light.Diffuse = D3DXCOLOR(0.8f, 0.8f, 0.8f, 1.0f); // set the light's color
 	light.Direction = D3DXVECTOR3(-1.0f, -0.3f, -1.0f);
 
 	d3ddev->SetLight(0, &light); // send the light struct properties to light #0
 	d3ddev->LightEnable(0, TRUE); // turn on light #0
 	
 	ZeroMemory(&material, sizeof(material)); // clear out the struct for use
-	material.Diffuse = D3DXCOLOR(0.8f, 0.0f, 0.0f, 1.0f); // set diffuse color to white	
-	material.Ambient = D3DXCOLOR(0.4f, 0.0f, 0.0f, 1.0f); // set ambient color to white	
+	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f); // set diffuse color to white	
+	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f); // set ambient color to white	
 
 	d3ddev->SetMaterial(&material); // set the globally-used material to &material
 }
