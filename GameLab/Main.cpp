@@ -76,7 +76,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	// this struct holds Windows event messages
 	MSG msg;
 
-	//UINT_PTR timer = SetTimer(hWnd, 0, 25, NULL);
+	//UINT_PTR timer = SetTimer(hWnd, 0, 2000, NULL);
 
 	// Enter the infinite message loop
 	while(TRUE)
@@ -110,12 +110,18 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 	switch(message)
 	{
 		case WM_TIMER:
-			{				
-				//index -= 0.05f;
+			{
+				
 			} break;
 		// post a message to shutdown the program if ESC is pressed
 		case WM_KEYUP:
 			{
+				if(wParam == VK_SPACE)
+				{
+					static BOOL light1 = true; light1 = !light1;
+					d3ddev->LightEnable(0, light1);
+				}				
+
 				if( wParam != VK_ESCAPE) break;
 			}
 		// this messsage is read when the window is closed
@@ -183,8 +189,7 @@ void Render_Frame(void)
 			&D3DXVECTOR3(0.0f,0.0f,0.0f), // the look-at position
 			&D3DXVECTOR3(0.0f,1.0f,0.0f) ); // the up direction
 		d3ddev->SetTransform(D3DTS_VIEW, &matView);
-
-
+		
 		// set the projection transform
 		D3DXMATRIX matProjection;		
 		D3DXMatrixPerspectiveFovLH(&matProjection,
@@ -199,12 +204,12 @@ void Render_Frame(void)
 		d3ddev->SetIndices(i_buffer);
 
 		// set the world transform
-		static float index = 0; index += 0.05f;		
+		static float index = 0; index += 0.05f;
 		D3DXMATRIX matRotateY;		
-		D3DXMatrixRotationY(&matRotateY, index);
+		D3DXMatrixRotationY(&matRotateY, index);				
 		d3ddev->SetTransform(D3DTS_WORLD, &(matRotateY));
-				
-		d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 24, 0, 12);
+
+		d3ddev->DrawIndexedPrimitive(D3DPT_TRIANGLELIST, 0, 0, 24, 0, 8);
 	
 	d3ddev->EndScene();
 
@@ -226,35 +231,40 @@ void Init_Graphics(void)
 	// create the vertices using the CUSTOMVERTEX struct
 	CUSTOMVERTEX t_vert[] =
 	{
-		{ -3.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },    // side 1
-        { 3.0f, -3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
-        { -3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
-        { 3.0f, 3.0f, 3.0f, 0.0f, 0.0f, 1.0f, },
+		// fuselage
+		{ 0.0f, 3.0f, -3.0f, -0.7992f, 1.0f, 0.2307f },  // 0
+		{ -3.0f, 0.0f, 0.0f, -0.7992f, 1.0f, 0.2307f },
+		{ 0.0f, 0.0f, 10.0f, -0.7992f, 1.0f, 0.2307f },
 
-        { -3.0f, -3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },    // side 2
-        { -3.0f, 3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
-        { 3.0f, -3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
-        { 3.0f, 3.0f, -3.0f, 0.0f, 0.0f, -1.0f, },
+		{ 3.0f, 0.0f, 0.0f, 0.7992f, 1.0f, 0.2307f },	// 3
+		{ 0.0f, 3.0f, -3.0f, 0.7992f, 1.0f, 0.2307f },
+		{ 0.0f, 0.0f, 10.0f, 0.7992f, 1.0f, 0.2307f },
 
-        { -3.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, },    // side 3
-        { -3.0f, 3.0f, 3.0f, 0.0f, 1.0f, 0.0f, },
-        { 3.0f, 3.0f, -3.0f, 0.0f, 1.0f, 0.0f, },
-        { 3.0f, 3.0f, 3.0f, 0.0f, 1.0f, 0.0f, },
+		{ 3.0f, 0.0f, 0.0f, 0.0f, -1.0f, -1.0f },	// 6
+		{ -3.0f, 0.0f, 0.0f, 0.0f, -1.0f, -1.0f },
+		{ 0.0f, 3.0f, -3.0f, 0.0f, -1.0f, -1.0f },
 
-        { -3.0f, -3.0f, -3.0f, 0.0f, -1.0f, 0.0f, },    // side 4
-        { 3.0f, -3.0f, -3.0f, 0.0f, -1.0f, 0.0f, },
-        { -3.0f, -3.0f, 3.0f, 0.0f, -1.0f, 0.0f, },
-        { 3.0f, -3.0f, 3.0f, 0.0f, -1.0f, 0.0f, },
+		{ 3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f },		// 9
+		{ 0.0f, 0.0f, 10.0f, 0.0f, 1.0f, 0.0f },
+		{ -3.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f },
 
-        { 3.0f, -3.0f, -3.0f, 1.0f, 0.0f, 0.0f, },    // side 5
-        { 3.0f, 3.0f, -3.0f, 1.0f, 0.0f, 0.0f, },
-        { 3.0f, -3.0f, 3.0f, 1.0f, 0.0f, 0.0f, },
-        { 3.0f, 3.0f, 3.0f, 1.0f, 0.0f, 0.0f, },
+		// left gun
+		{ 3.2f, -1.0f, -3.0f, 0.1666f, 1.0f, 0.0f },	// 12		
+		{ 2.0f, 1.0f, 2.0f, 0.1666f, 1.0f, 0.0f },
+		{ 3.2f, -1.0f, 11.0f, 0.1666f, 1.0f, 0.0f },
+		
+		{ 3.2f, -1.0f, -3.0f, -0.1666f, -1.0f, 0.0f },	// 15		
+		{ 3.2f, -1.0f, 11.0f, -0.1666f, -1.0f, 0.0f },
+		{ 2.0f, 1.0f, 2.0f, -0.1666f, -1.0f, 0.0f },
 
-        { -3.0f, -3.0f, -3.0f, -1.0f, 0.0f, 0.0f, },    // side 6
-        { -3.0f, -3.0f, 3.0f, -1.0f, 0.0f, 0.0f, },
-        { -3.0f, 3.0f, -3.0f, -1.0f, 0.0f, 0.0f, },
-        { -3.0f, 3.0f, 3.0f, -1.0f, 0.0f, 0.0f, }
+		// right gun
+		{ -3.2f, -1.0f, -3.0f, 0.0384f, -1.0f, 0.0f },	// 18		
+		{ -2.0f, 1.0f, 2.0f, 0.0384f, -1.0f, 0.0f },
+		{ -3.2f, -1.0f, 11.0f, 0.0384f, -1.0f, 0.0f },
+
+		{ -3.2f, -1.0f, -3.0f, -0.0384f, 1.0f, 0.0f },	// 21
+		{ -3.2f, -1.0f, 11.0f, -0.0384f, 1.0f, 0.0f },
+		{ -2.0f, 1.0f, 2.0f, -0.0384f, 1.0f, 0.0f }
 	};
 
 	// create a vertex buffer interface called v_buffer
@@ -275,22 +285,18 @@ void Init_Graphics(void)
 	// create the indices using an int array
 	short indices[] =
 	{
-		0, 1, 2,    // side 1
-        2, 1, 3,
-        4, 5, 6,    // side 2
-        6, 5, 7,
-        8, 9, 10,    // side 3
-        10, 9, 11,
-        12, 13, 14,    // side 4
-        14, 13, 15,
-        16, 17, 18,    // side 5
-        18, 17, 19,
-        20, 21, 22,    // side 6
-        22, 21, 23
+		0, 1, 2,    // fuselage
+		3, 4, 5,
+		6, 7, 8,
+		9, 10, 11,
+		12, 13, 14,
+		15, 16, 17,
+		18, 19, 20,
+		21, 22, 23				
 	};
 	
 	// create an index buffer interface called i_buffer
-	d3ddev->CreateIndexBuffer( 36 * sizeof(short), // 3 per triangle, 12;
+	d3ddev->CreateIndexBuffer( (8 * 3) * sizeof(short), // 3 per triangle, 12;
 								0,
 								D3DFMT_INDEX16,
 								D3DPOOL_MANAGED,
@@ -306,20 +312,20 @@ void Init_Graphics(void)
 // this is the function that sets up the lights and materials
 void Init_Light(void)
 {
-	D3DLIGHT9 light; // create a light struct
+	D3DLIGHT9 light; // create a light struct	
 	D3DMATERIAL9 material;	// create the material struct
 
 	ZeroMemory(&light, sizeof(light)); // clear out the light struct for use
 	light.Type = D3DLIGHT_DIRECTIONAL; // make the light type 'directional light'
-	light.Diffuse = D3DXCOLOR(0.5f, 0.5f, 0.5f, 1.0f); // set the light's color
+	light.Diffuse = D3DXCOLOR(1.0f, 0.4f, 0.4f, 1.0f); // set the light's color
 	light.Direction = D3DXVECTOR3(-1.0f, -0.3f, -1.0f);
 
 	d3ddev->SetLight(0, &light); // send the light struct properties to light #0
 	d3ddev->LightEnable(0, TRUE); // turn on light #0
-
+	
 	ZeroMemory(&material, sizeof(material)); // clear out the struct for use
-	material.Diffuse = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f); // set diffuse color to white	
-	material.Ambient = D3DXCOLOR(1.0f, 1.0f, 1.0f, 1.0f); // set ambient color to white	
+	material.Diffuse = D3DXCOLOR(0.8f, 0.0f, 0.0f, 1.0f); // set diffuse color to white	
+	material.Ambient = D3DXCOLOR(0.4f, 0.0f, 0.0f, 1.0f); // set ambient color to white	
 
 	d3ddev->SetMaterial(&material); // set the globally-used material to &material
 }
